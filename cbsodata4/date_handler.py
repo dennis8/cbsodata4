@@ -1,3 +1,4 @@
+import calendar
 import logging
 from datetime import datetime
 from functools import cache
@@ -32,7 +33,8 @@ def period_to_date(period: str) -> datetime:
 @cache
 def period_to_numeric(period: str) -> float:
     date = period_to_date(period)
-    return date.year + (date.timetuple().tm_yday - 1) / (366 if date.is_leap_year else 365)
+    is_leap = calendar.isleap(date.year)
+    return date.year + (date.timetuple().tm_yday - 1) / (366 if is_leap else 365)
 
 
 @cache
