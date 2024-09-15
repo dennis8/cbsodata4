@@ -27,6 +27,7 @@ def get_datasets(convert_dates: bool = True, catalog: str = DEFAULT_CATALOG, bas
     if convert_dates:
         for date_col in ["Modified", "ObservationsModified"]:
             if date_col in ds.columns:
-                ds[date_col] = pd.to_datetime(ds[date_col], errors="coerce")
+                ds[date_col] = pd.to_datetime(ds[date_col], errors="coerce", utc=True)
+                ds[date_col] = ds[date_col].dt.tz_convert('Europe/Amsterdam')
 
     return ds

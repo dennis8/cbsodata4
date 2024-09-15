@@ -43,6 +43,7 @@ def download_data_stream(
         values = data.get("value", empty_selection.to_dict(orient="records"))
         df = pd.DataFrame(values)
         file_path = Path(output_path) / f"partition_{partition}.parquet"
+        file_path.parent.mkdir(parents=True, exist_ok=True)
         df.to_parquet(file_path, engine="pyarrow", index=False)
 
         if progress_cb:
