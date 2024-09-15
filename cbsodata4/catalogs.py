@@ -1,7 +1,7 @@
 import pandas as pd
 
 from .config import BASE_URL
-from .utils import fetch_json
+from .httpx_json_client import fetch_json
 
 
 def get_catalogs(base_url: str = BASE_URL) -> pd.DataFrame:

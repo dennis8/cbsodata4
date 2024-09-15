@@ -5,7 +5,7 @@ import pandas as pd
 
 from .config import BASE_URL, DEFAULT_CATALOG, DEFAULT_LANGUAGE, SEARCH_URL
 from .datasets import get_datasets
-from .utils import fetch_json
+from .httpx_json_client import fetch_json
 
 logger = logging.getLogger(__name__)
 

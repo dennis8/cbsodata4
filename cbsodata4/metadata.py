@@ -4,7 +4,7 @@ from typing import Any
 import pandas as pd
 
 from .config import BASE_URL, DEFAULT_CATALOG
-from .utils import fetch_json
+from .httpx_json_client import fetch_json
 
 logger = logging.getLogger(__name__)
 
@@ -70,7 +70,7 @@ def get_metadata(
     base_url: str = BASE_URL,
 ) -> CbsMetadata:
     """Retrieve the metadata of a publication for the given dataset identifier."""
-    
+
     if isinstance(id, pd.DataFrame):
         if hasattr(id, "meta") and id.meta is not None:
             return id.meta

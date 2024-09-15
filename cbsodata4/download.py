@@ -1,16 +1,14 @@
 import json
 import logging
-import sys
 from pathlib import Path
 from typing import Any
 
 import pandas as pd
-from tqdm import tqdm
 
 from .config import BASE_URL, DEFAULT_CATALOG
+from .httpx_json_client import fetch_json
 from .metadata import CbsMetadata, get_metadata
 from .query import build_odata_query, construct_filter
-from .utils import download_data_stream
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +19,6 @@ def download_dataset(
     catalog: str = DEFAULT_CATALOG,
     query: str | None = None,
     select: list[str] | None = None,
-    show_progress: bool = True,
     base_url: str = BASE_URL,
     **filters: Any,
 ) -> CbsMetadata:
@@ -54,24 +51,11 @@ def download_dataset(
 
     observations_dir = download_path / "Observations"
 
-    progress_callback = None
-    if show_progress and sys.stdout.isatty():
-        pbar = tqdm(desc="Downloading observations", unit="rows")
-
-        def update_progress(df: pd.DataFrame):
-            pbar.update(len(df))
-
-        progress_callback = update_progress
-
     download_data_stream(
         url=str(path),
         output_path=str(observations_dir),
         empty_selection=get_empty_dataframe(meta),
-        progress_cb=progress_callback,
     )
-
-    if show_progress and sys.stdout.isatty():
-        pbar.close()
 
     logger.info(f"The data is in '{download_path}'")
     return meta
@@ -82,3 +66,30 @@ def get_empty_dataframe(meta: CbsMetadata) -> pd.DataFrame:
     columns = ["Id", "Measure", "ValueAttribute", "Value"] + meta.dimension_identifiers
     empty_df = pd.DataFrame(columns=columns)
     return empty_df
+
+
+def download_data_stream(
+    url: str,
+    output_path: str | Path,
+    empty_selection: pd.DataFrame,
+) -> None:
+    """Download data from an url to output_path folder."""
+
+    def fetch_and_process_data(url: str, partition: int) -> str | None:
+        """Fetch data from URL, process it, and write to the output directory."""
+        data = fetch_json(url)
+        values = data.get("value", empty_selection.to_dict(orient="records"))
+        df = pd.DataFrame(values)
+        file_path = Path(output_path) / f"partition_{partition}.parquet"
+        file_path.parent.mkdir(parents=True, exist_ok=True)
+        df.to_parquet(file_path, engine="pyarrow", index=False)
+        return data.get("@odata.nextLink")
+
+    logger.info(f"Retrieving {url}")
+    partition = 0
+    next_link = fetch_and_process_data(url, partition)
+
+    while next_link:
+        partition += 1
+        logger.info(f"Retrieving {next_link}")
+        next_link = fetch_and_process_data(next_link, partition)

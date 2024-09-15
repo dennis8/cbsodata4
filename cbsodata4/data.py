@@ -1,5 +1,5 @@
 import logging
-from typing import Any, List, Optional
+from typing import Any
 
 import pandas as pd
 
@@ -13,39 +13,20 @@ logger = logging.getLogger(__name__)
 def get_wide_data(
     id: str,
     catalog: str = DEFAULT_CATALOG,
-    download_dir: Optional[str] = None,
-    query: Optional[str] = None,
-    select: Optional[List[str]] = None,
+    download_dir: str | None = None,
+    query: str | None = None,
+    select: list[str] | None = None,
     name_measure_columns: bool = True,
-    show_progress: Optional[bool] = None,
     base_url: str = BASE_URL,
     **filters: Any,
 ) -> pd.DataFrame:
-    """Get data from CBS in wide format by pivoting observations.
-
-    Retrieves observations and pivots them to wide format, with each Measure as a separate column.
-
-    Args:
-        id (str): Identifier of the OpenData table.
-        catalog (str): Catalog in which the dataset is to be found.
-        download_dir (Optional[str]): Directory to download data. Defaults to temp dir.
-        query (Optional[str]): OData4 query in OData syntax.
-        select (Optional[List[str]]): Columns to select.
-        name_measure_columns (bool): If True, the Title of the measure will be set as column name.
-        show_progress (Optional[bool]): If True, shows progress bar.
-        base_url (str): Base URL of the CBS OData4 API.
-        **filters (Any): Additional filter parameters.
-
-    Returns:
-        pd.DataFrame: DataFrame in wide format with measures as columns.
-    """
+    """Get data from CBS in wide format by pivoting observations, with each Measure as a separate column."""
     obs = get_observations(
         id=id,
         catalog=catalog,
         download_dir=download_dir,
         query=query,
         select=select,
-        show_progress=show_progress,
         include_id=False,
         base_url=base_url,
         **filters,

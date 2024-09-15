@@ -4,7 +4,7 @@ from functools import cache
 import pandas as pd
 
 from .config import BASE_URL, DEFAULT_CATALOG
-from .utils import fetch_json
+from .httpx_json_client import fetch_json
 
 logger = logging.getLogger(__name__)
 
@@ -28,6 +28,6 @@ def get_datasets(convert_dates: bool = True, catalog: str = DEFAULT_CATALOG, bas
         for date_col in ["Modified", "ObservationsModified"]:
             if date_col in ds.columns:
                 ds[date_col] = pd.to_datetime(ds[date_col], errors="coerce", utc=True)
-                ds[date_col] = ds[date_col].dt.tz_convert('Europe/Amsterdam')
+                ds[date_col] = ds[date_col].dt.tz_convert("Europe/Amsterdam")
 
     return ds
