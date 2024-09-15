@@ -38,13 +38,16 @@ def test_add_label_columns_no_meta():
 def test_add_label_columns_no_measure_column():
     data = pd.DataFrame({
         "MeasureCode": ["M1", "M2"],
-        "Dim1": ["D1", "D2"]
+        "Dim2": ["D1", "D2"]
     })
     mock_meta = MagicMock()
-    mock_meta.get_label_mappings.return_value = {}
+    mock_meta.get_label_mappings.return_value = {
+        "Measure": {"M1": "Measure 1", "M2": "Measure 2"},
+        "Dim1": {"D1": "Dimension 1", "D2": "Dimension 2"}
+    }
     data.attrs["meta"] = mock_meta
 
-    with pytest.raises(ValueError, match="Data does not contain 'Measure' column."):
+    with pytest.raises(ValueError, match="Data does not contain column 'Dim1' required for labeling."):
         add_label_columns(data)
 
 def test_add_label_columns_partial_mappings():
