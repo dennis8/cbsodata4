@@ -79,11 +79,6 @@ def download_dataset(
 
 def get_empty_dataframe(meta: CbsMetadata) -> pd.DataFrame:
     """Create an empty DataFrame with the required structure for empty selections."""
-    columns = ["Id", "Measure", "ValueAttribute", "Value"]
-    dimensions = meta.meta_dict.get("Dimensions", [])
-    for dim in dimensions:
-        dim_id = dim.get("Identifier")
-        if dim_id:
-            columns.append(dim_id)
+    columns = ["Id", "Measure", "ValueAttribute", "Value"] + meta.dimension_identifiers
     empty_df = pd.DataFrame(columns=columns)
     return empty_df
