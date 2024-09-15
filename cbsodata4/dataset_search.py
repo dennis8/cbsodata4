@@ -5,7 +5,7 @@ import pandas as pd
 
 from .config import BASE_URL, DEFAULT_CATALOG, DEFAULT_LANGUAGE, SEARCH_URL
 from .datasets import get_datasets
-from .httpx_json_client import fetch_json
+from .httpx_client import fetch_json
 
 logger = logging.getLogger(__name__)
 
@@ -45,7 +45,6 @@ def search_datasets(
     )
 
     ds = get_datasets(catalog=catalog, convert_dates=convert_dates, base_url=base_url)
-
     res_ds = ds.merge(res_tables, how="left", left_on="Identifier", right_on="unique_id")
     res_ds = res_ds.dropna(subset=["unique_id"])
 

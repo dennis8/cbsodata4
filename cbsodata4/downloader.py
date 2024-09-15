@@ -6,9 +6,9 @@ from typing import Any
 import pandas as pd
 
 from .config import BASE_URL, DEFAULT_CATALOG
-from .httpx_json_client import fetch_json
+from .httpx_client import fetch_json
 from .metadata import CbsMetadata, get_metadata
-from .query import build_odata_query, construct_filter
+from .query_builder import build_odata_query, construct_filter
 
 logger = logging.getLogger(__name__)
 

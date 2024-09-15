@@ -4,7 +4,7 @@ from typing import Any
 import pandas as pd
 
 from .config import BASE_URL, DEFAULT_CATALOG
-from .httpx_json_client import fetch_json
+from .httpx_client import fetch_json
 
 logger = logging.getLogger(__name__)
 

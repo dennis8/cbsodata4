@@ -7,7 +7,7 @@ import pyarrow.parquet as pq
 
 from .config import BASE_URL, DEFAULT_CATALOG
 from .datasets import get_datasets
-from .download import download_dataset
+from .downloader import download_dataset
 
 logger = logging.getLogger(__name__)
 

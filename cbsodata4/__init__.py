@@ -1,13 +1,13 @@
 from .catalogs import get_catalogs
-from .data import get_wide_data
+from .data_processor import get_wide_data
 from .datasets import get_datasets
-from .date_handling import add_date_column
-from .download import download_dataset
-from .labeling import add_label_columns
+from .date_handler import add_date_column
+from .downloader import download_dataset
+from .labeler import add_label_columns
 from .metadata import get_metadata
 from .observations import get_observations
-from .search import search_datasets
-from .unit_handling import add_unit_column
+from .dataset_search import search_datasets
+from .unit_handler import add_unit_column
 
 __all__ = [
     "get_catalogs",
