@@ -1,134 +1,56 @@
-from typing import List, Optional, Union, Any
+from typing import List, Optional, Any
 
-def eq(column: str, values: Union[str, List[str]]) -> str:
-    """Create an OData eq filter.
-
-    Args:
-        column (str): Column name.
-        values (Union[str, List[str]]): Value or list of values to match.
-
-    Returns:
-        str: OData filter string.
-    """
+def build_eq_filter(column: str, values: str | List[str]) -> str:
+    """Create an OData eq filter for a column with given values."""
     if isinstance(values, list):
-        conditions = [f"{column} eq '{v}'" for v in values]
+        conditions = [f"{column} eq '{value}'" for value in values]
         return "(" + " or ".join(conditions) + ")"
     else:
         return f"{column} eq '{values}'"
 
-def contains(column: str, substring: str) -> str:
-    """Create an OData contains filter.
-
-    Args:
-        column (str): Column name.
-        substring (str): Substring to search for.
-
-    Returns:
-        str: OData filter string.
-    """
+def build_contains_filter(column: str, substring: str) -> str:
+    """Create an OData contains filter for a column with a given substring."""
     return f"contains({column}, '{substring}')"
 
-def startswith(column: str, prefix: str) -> str:
-    """Create an OData startswith filter.
-
-    Args:
-        column (str): Column name.
-        prefix (str): Prefix to search for.
-
-    Returns:
-        str: OData filter string.
-    """
+def build_startswith_filter(column: str, prefix: str) -> str:
+    """Create an OData startswith filter for a column with a given prefix."""
     return f"startswith({column}, '{prefix}')"
 
-def endswith(column: str, suffix: str) -> str:
-    """Create an OData endswith filter.
-
-    Args:
-        column (str): Column name.
-        suffix (str): Suffix to search for.
-
-    Returns:
-        str: OData filter string.
-    """
+def build_endswith_filter(column: str, suffix: str) -> str:
+    """Create an OData endswith filter for a column with a given suffix."""
     return f"endswith({column}, '{suffix}')"
 
-def and_filter(*filters: str) -> str:
-    """Combine multiple filters with 'and'.
+def combine_filters_with_and(filters: List[str]) -> str:
+    """Combine multiple filter strings with 'and'."""
+    return " and ".join([f"({filter_str})" for filter_str in filters])
 
-    Args:
-        *filters (str): Filter strings.
+def combine_filters_with_or(filters: List[str]) -> str:
+    """Combine multiple filter strings with 'or'."""
+    return " or ".join([f"({filter_str})" for filter_str in filters])
 
-    Returns:
-        str: Combined filter string.
-    """
-    return " and ".join([f"({f})" for f in filters])
-
-def or_filter(*filters: str) -> str:
-    """Combine multiple filters with 'or'.
-
-    Args:
-        *filters (str): Filter strings.
-
-    Returns:
-        str: Combined filter string.
-    """
-    return " or ".join([f"({f})" for f in filters])
-
-def build_query(filter_str: Optional[str] = None, select: Optional[List[str]] = None) -> str:
-    """Build the OData query string.
-
-    Args:
-        filter_str (Optional[str]): Filter string.
-        select (Optional[List[str]]): List of columns to select.
-
-    Returns:
-        str: OData query string.
-    """
-    query = []
+def build_odata_query(filter_str: Optional[str] = None, select_fields: Optional[List[str]] = None) -> str:
+    """Build the OData query string with optional filters and select fields."""
+    query_parts = []
     if filter_str:
-        query.append(f"$filter={filter_str}")
-    if select:
-        select_str = ",".join(select)
-        query.append(f"$select={select_str}")
-    if query:
-        return "?" + "&".join(query)
-    else:
-        return ""
+        query_parts.append(f"$filter={filter_str}")
+    if select_fields:
+        select_str = ",".join(select_fields)
+        query_parts.append(f"$select={select_str}")
+    if query_parts:
+        return "?" + "&".join(query_parts)
+    return ""
 
-def get_filter(**filters: Any) -> Optional[str]:
-    """Build the OData filter string based on filters.
-
-    Args:
-        **filters (Any): Column filters.
-
-    Returns:
-        Optional[str]: OData filter string.
-    """
+def construct_filter(**column_filters: Any) -> Optional[str]:
+    """Construct the OData filter string based on column filters."""
     filter_clauses = []
-    for column, value in filters.items():
-        if isinstance(value, str):
-            clause = eq(column, value)
-        elif isinstance(value, list):
-            clause = eq(column, value)
-        elif isinstance(value, dict):
-            # Implement more complex filters if needed
-            clause = ""
-        else:
-            clause = ""
-        if clause:
+    for column, value in column_filters.items():
+        if isinstance(value, (str, list)):
+            clause = build_eq_filter(column, value)
             filter_clauses.append(clause)
+        elif isinstance(value, dict):
+            # Handle complex filters if necessary
+            # Placeholder for future implementation
+            pass
     if not filter_clauses:
         return None
-    return and_filter(*filter_clauses)
-
-def get_query_from_meta(filter_str: Optional[str] = None, select: Optional[List[str]] = None) -> str:
-    """Build OData query string.
-
-    Args:
-        filter_str (Optional[str]): Filter string.
-        select (Optional[List[str]]): List of columns to select.
-
-    Returns:
-        str: OData query string.
-    """
-    return build_query(filter_str, select)
+    return combine_filters_with_and(filter_clauses)

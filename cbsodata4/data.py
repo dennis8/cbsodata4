@@ -1,23 +1,24 @@
-# data.py
-
 from typing import Any, Optional, List
 import pandas as pd
 from .observations import get_observations
-from .metadata import CbsMeta
-from .config import DEFAULT_CATALOG, BASE_URL
+from .metadata import CbsMetadata
+from .config import BASE_URL, DEFAULT_CATALOG
+import logging
 
-def get_data(id: str,
-             catalog: str = DEFAULT_CATALOG,
-             download_dir: Optional[str] = None,
-             query: Optional[str] = None,
-             select: Optional[List[str]] = None,
-             name_measure_columns: bool = True,
-             show_progress: Optional[bool] = None,
-             verbose: bool = False,
-             sep: str = ",",
-             base_url: str = BASE_URL,
-             **filters: Any) -> pd.DataFrame:
-    """Get data from CBS in wide format.
+logger = logging.getLogger(__name__)
+
+def get_wide_data(id: str,
+                 catalog: str = DEFAULT_CATALOG,
+                 download_dir: Optional[str] = None,
+                 query: Optional[str] = None,
+                 select: Optional[List[str]] = None,
+                 name_measure_columns: bool = True,
+                 show_progress: Optional[bool] = None,
+                 base_url: str = BASE_URL,
+                 **filters: Any) -> pd.DataFrame:
+    """Get data from CBS in wide format by pivoting observations.
+
+    Retrieves observations and pivots them to wide format, with each Measure as a separate column.
 
     Args:
         id (str): Identifier of the OpenData table.
@@ -27,8 +28,6 @@ def get_data(id: str,
         select (Optional[List[str]]): Columns to select.
         name_measure_columns (bool): If True, the Title of the measure will be set as column name.
         show_progress (Optional[bool]): If True, shows progress bar.
-        verbose (bool): If True, prints additional information.
-        sep (str): Separator used in CSV.
         base_url (str): Base URL of the CBS OData4 API.
         **filters (Any): Additional filter parameters.
 
@@ -41,29 +40,28 @@ def get_data(id: str,
                            download_dir=download_dir,
                            query=query,
                            select=select,
-                           sep=sep,
                            show_progress=show_progress,
-                           verbose=verbose,
                            include_id=False,
                            base_url=base_url,
                            **filters)
-
+    
     is_empty = obs.empty
-
-    meta: CbsMeta = obs.attrs.get('meta')
-
+    meta: CbsMetadata = obs.attrs.get('meta')
+    
     if meta is None:
+        logger.error("Metadata is missing in observations.")
         raise ValueError("Metadata is missing in observations.")
-
+    
     # Pivot the DataFrame from long to wide
-    dimensions = meta.meta_dict.get('Dimensions', {}).get('Identifier', [])
+    dimensions = [dim['Identifier'] for dim in meta.meta_dict.get('Dimensions', [])]
     if not dimensions:
+        logger.error("No dimensions found in metadata.")
         raise ValueError("No dimensions found in metadata.")
-
+    
     pivot_index = dimensions
     pivot_columns = 'Measure'
     pivot_values = 'Value'
-
+    
     if is_empty:
         # Create an empty DataFrame with columns as measures
         measures = meta.meta_dict.get('MeasureCodes', [])
@@ -75,7 +73,7 @@ def get_data(id: str,
                             columns=pivot_columns,
                             values=pivot_values,
                             aggfunc='first').reset_index()
-
+        
         # Rename measure columns if required
         if name_measure_columns:
             measure_codes = meta.meta_dict.get('MeasureCodes', [])
@@ -84,5 +82,5 @@ def get_data(id: str,
     
     # Attach metadata
     d.attrs['meta'] = meta
-
+    
     return d

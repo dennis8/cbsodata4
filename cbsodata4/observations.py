@@ -1,69 +1,63 @@
-# observations.py
-
-from typing import Any, Optional, List
-import pandas as pd
-from .utils import read_csv
-from .datasets import get_datasets
-from .download import download_data
-from .metadata import CbsMeta
-from .config import BASE_URL, DEFAULT_CATALOG
+import logging
 from pathlib import Path
+from typing import Any
 
-def get_observations(id: str,
-                     catalog: str = DEFAULT_CATALOG,
-                     download_dir: Optional[str] = None,
-                     query: Optional[str] = None,
-                     select: Optional[List[str]] = None,
-                     sep: str = ",",
-                     show_progress: Optional[bool] = None,
-                     verbose: bool = False,
-                     include_id: bool = True,
-                     base_url: str = BASE_URL,
-                     **filters: Any) -> pd.DataFrame:
-    """Get observations from a table.
+import pandas as pd
+import pyarrow.parquet as pq
 
-    Args:
-        id (str): Identifier of the OpenData table.
-        catalog (str): Catalog in which the dataset is to be found.
-        download_dir (Optional[str]): Directory to download data. Defaults to temp dir.
-        query (Optional[str]): OData4 query in OData syntax.
-        select (Optional[List[str]]): Columns to select.
-        sep (str): Separator used in CSV.
-        show_progress (Optional[bool]): If True, shows progress bar.
-        verbose (bool): If True, prints additional information.
-        include_id (bool): If False, drops the 'Id' column.
-        base_url (str): Base URL of the CBS OData4 API.
-        **filters (Any): Additional filter parameters.
 
-    Returns:
-        pd.DataFrame: DataFrame with observations.
+from .config import BASE_URL, DEFAULT_CATALOG
+from .datasets import get_datasets
+from .download import download_dataset
+
+logger = logging.getLogger(__name__)
+
+def get_observations(
+    id: str,
+    catalog: str = DEFAULT_CATALOG,
+    download_dir: str | None = None,
+    query: str | None = None,
+    select: list[str] | None = None,
+    show_progress: bool = True,
+    include_id: bool = True,
+    base_url: str = BASE_URL,
+    **filters: dict[str, Any],
+) -> pd.DataFrame:
     """
-    # Check if id exists in catalog
-    toc = get_datasets(catalog=catalog, verbose=verbose, base_url=base_url)
-    if id not in toc['Identifier'].values:
+    Retrieve observations from a dataset in long format.
+
+    Fetches data from the specified dataset, applies optional filters and column selection,
+    and returns it as a pandas DataFrame.
+    """
+    
+    toc = get_datasets(catalog=catalog, base_url=base_url)
+    if id not in toc["Identifier"].values:
+        logger.error(f"Table '{id}' cannot be found in catalog '{catalog}'.")
         raise ValueError(f"Table '{id}' cannot be found in catalog '{catalog}'.")
+    
+    meta = download_dataset(
+        id=id,
+        download_dir=download_dir,
+        catalog=catalog,
+        query=query,
+        select=select,
+        show_progress=show_progress,
+        base_url=base_url,
+        **filters,
+    )
 
-    # Download data
-    meta = download_data(id=id,
-                         download_dir=download_dir,
-                         catalog=catalog,
-                         query=query,
-                         select=select,
-                         sep=sep,
-                         show_progress=show_progress,
-                         verbose=verbose,
-                         base_url=base_url,
-                         **filters)
-
-    # Read observations.csv
     download_path = Path(download_dir or id)
-    observations_file = download_path / "Observations.csv"
-    obs = pd.read_csv(observations_file, sep=sep)
+    observations_dir = download_path / "Observations"
 
-    if not include_id and 'Id' in obs.columns:
-        obs = obs.drop(columns=['Id'])
+    try:
+        obs = pd.concat(pq.read_table(str(observations_dir)).to_pandas() for partition in observations_dir.iterdir())
+    except FileNotFoundError:
+        logger.error(f"Observations directory not found at {observations_dir}.")
+        raise
 
-    # Attach metadata
-    obs.attrs['meta'] = meta
+    if not include_id and "Id" in obs.columns:
+        obs = obs.drop(columns=["Id"])
+    
+    obs.attrs["meta"] = meta
 
     return obs

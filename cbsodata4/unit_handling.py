@@ -1,49 +1,40 @@
-# labeling.py
-
 from typing import Any
 import pandas as pd
-from .metadata import CbsMeta
+from .metadata import CbsMetadata
+import logging
 
-def add_label_columns(data: pd.DataFrame, **kwargs) -> pd.DataFrame:
-    """Add understandable labels to a table.
+logger = logging.getLogger(__name__)
 
-    Adds for the `Measure` and each Dimension column an extra column `MeasureLabel` (`<Dimension>Label`) that contains the `Title` of each code.
+def add_unit_column(data: pd.DataFrame) -> pd.DataFrame:
+    """Add a unit column to observations based on metadata.
+
+    Retrieves the Unit for each Measure from MeasureCodes in metadata and adds it as a 'Unit' column.
 
     Args:
-        data (pd.DataFrame): DataFrame retrieved using get_data() or get_observations().
+        data (pd.DataFrame): DataFrame retrieved using get_observations().
 
     Returns:
-        pd.DataFrame: Original DataFrame with extra label columns.
+        pd.DataFrame: Original DataFrame with an additional 'Unit' column.
     """
-    meta: CbsMeta = data.attrs.get('meta')
+    meta: CbsMetadata = data.attrs.get('meta')
     if meta is None:
-        raise ValueError("add_label_columns only works on data retrieved with get_data or get_observations and requires metadata.")
-
-    # Identify dimension columns
-    dimension_identifiers = meta.meta_dict.get('Dimensions', {}).get('Identifier', [])
-    dim_cols = ['Measure'] + dimension_identifiers
-    dim_cols = [col for col in dim_cols if col in data.columns]
-
-    dim_codes = [f"{col}Codes" for col in dim_cols]
-
-    label_cols = [f"{col}Label" for col in dim_cols]
-
-    for dim_col, code_col, label_col in zip(dim_cols, dim_codes, label_cols):
-        codes = data[dim_col]
-        if hasattr(meta, code_col):
-            meta_dim = getattr(meta, code_col)
-            # meta_dim is a list of dicts with 'Identifier' and 'Title'
-            code_to_title = {item['Identifier']: item['Title'] for item in meta_dim}
-            data[label_col] = codes.map(code_to_title)
-        else:
-            data[label_col] = None  # Or leave it out, or raise an error
-
-    # Reorder columns: place label columns just after the code columns
-    columns = list(data.columns)
-    for dim_col, label_col in zip(dim_cols, label_cols):
-        if dim_col in columns and label_col in columns:
-            idx = columns.index(dim_col)
-            columns.insert(idx +1, columns.pop(columns.index(label_col)))
-    data = data[columns]
-
+        logger.error("add_unit_column requires metadata.")
+        raise ValueError("add_unit_column requires metadata.")
+    
+    if 'Measure' not in data.columns:
+        logger.error("Data does not contain 'Measure' column.")
+        raise ValueError("Data does not contain 'Measure' column.")
+    
+    measure_codes = meta.meta_dict.get('MeasureCodes', [])
+    measure_map = {m['Identifier']: m['Unit'] for m in measure_codes}
+    
+    data['Unit'] = data['Measure'].map(measure_map)
+    
+    # Reorder columns: place 'Unit' after 'Value' if exists
+    if 'Value' in data.columns and 'Unit' in data.columns:
+        value_idx = data.columns.get_loc('Value')
+        cols = list(data.columns)
+        cols.insert(value_idx +1, cols.pop(cols.index('Unit')))
+        data = data[cols]
+    
     return data
