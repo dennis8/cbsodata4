@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "cbsodata4"
-version = "0.1.0"
+version = "0.1.1"
 description = "Python package to access the OData4 interface of data and metadata of Statistics Netherlands (CBS)"
 authors = ["Dennis Albers <dennis_foss@tutan.de>"]
 license = "Apache-2.0"
