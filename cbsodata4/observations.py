@@ -8,6 +8,7 @@ import pyarrow.parquet as pq
 from .config import BASE_URL, DEFAULT_CATALOG
 from .datasets import get_datasets
 from .downloader import download_dataset
+from .metadata import get_metadata
 
 logger = logging.getLogger(__name__)
 
@@ -20,6 +21,7 @@ def get_observations(
     select: list[str] | None = None,
     include_id: bool = True,
     base_url: str = BASE_URL,
+    overwrite: bool = False,
     **filters: dict[str, Any],
 ) -> pd.DataFrame:
     """
@@ -33,23 +35,28 @@ def get_observations(
     if id not in toc["Identifier"].values:
         raise ValueError(f"Table '{id}' cannot be found in catalog '{catalog}'.")
 
-    meta = download_dataset(
-        id=id,
-        download_dir=download_dir,
-        catalog=catalog,
-        query=query,
-        select=select,
-        base_url=base_url,
-        **filters,
-    )
+    download_path = Path(download_dir or id)
+    if overwrite or not download_path.exists():
+        meta = download_dataset(
+            id=id,
+            download_dir=download_path,
+            catalog=catalog,
+            query=query,
+            select=select,
+            base_url=base_url,
+            **filters,
+        )
+    else:
+        logger.info(f"Not redownloading files, instead reading from disk at location {download_path}.")
+        meta = get_metadata(id=id, catalog=catalog, base_url=base_url)
 
-    observations_dir = Path(download_dir or id) / "Observations"
+    observations_path = download_path / "Observations"
 
-    if not observations_dir.exists():
-        raise FileNotFoundError(f"Observations directory not found at {observations_dir}.")
+    if not observations_path.exists():
+        raise FileNotFoundError(f"Observations directory not found at {observations_path}.")
 
-    logger.info(f"Reading parquet files at {observations_dir}.")
-    obs = pq.read_table(str(observations_dir)).to_pandas()
+    logger.info(f"Reading parquet files at {observations_path}.")
+    obs = pq.read_table(str(observations_path)).to_pandas()
 
     if not include_id and "Id" in obs.columns:
         obs = obs.drop(columns=["Id"])
