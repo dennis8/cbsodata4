@@ -13,6 +13,7 @@ logger = logging.getLogger(__name__)
 
 @cache
 def period_to_date(period: str) -> datetime:
+    """Convert a CBS period string to a datetime object."""
     year, type_, number = int(period[:4]), period[4:6], int(period[6:])
     base_date = datetime(year, 1, 1)
 
@@ -32,45 +33,52 @@ def period_to_date(period: str) -> datetime:
 
 @cache
 def period_to_numeric(period: str) -> float:
+    """Convert a CBS period string to a numeric representation."""
     date = period_to_date(period)
-    is_leap = calendar.isleap(date.year)
-    return date.year + (date.timetuple().tm_yday - 1) / (366 if is_leap else 365)
+    days_in_year = 366 if calendar.isleap(date.year) else 365
+    return date.year + (date.timetuple().tm_yday - 1) / days_in_year
 
 
 @cache
 def period_to_freq(period: str) -> str:
-    type_ = period[4:6]
-    freq_map = {"JJ": "Y", "KW": "Q", "MM": "M", "W1": "W", "X0": "X"}
-    return freq_map.get(type_, "D")
+    """Convert a CBS period string to a frequency indicator."""
+    return {"JJ": "Y", "KW": "Q", "MM": "M", "W1": "W", "X0": "X"}.get(period[4:6], "D")
 
 
-def add_date_column(data: pd.DataFrame, date_type: Literal["date", "numeric"] = "date"):
+def add_date_column(
+    data: pd.DataFrame, date_type: Literal["date", "numeric"] = "date"
+) -> pd.DataFrame:
+    """Add date columns for time dimensions in the data using the specified date type."""
     meta: CbsMetadata = data.attrs.get("meta")
     if meta is None:
-        logger.error("add_date_column requires metadata.")
         raise ValueError("add_date_column requires metadata.")
 
     time_dimensions = meta.time_dimension_identifiers
-
     if not time_dimensions:
         logger.warning("Time dimension column not found in data.")
         return data
 
+    new_columns = {}
     for period_name in time_dimensions:
         periods = data[period_name]
 
-        if date_type == "date":
-            new_column = periods.map(period_to_date)
-        elif date_type == "numeric":
-            new_column = periods.map(period_to_numeric)
-        else:
-            raise ValueError("date_type must be either 'date' or 'numeric'")
+        converter = period_to_date if date_type == "date" else period_to_numeric
+        new_columns[f"{period_name}_{date_type}"] = periods.map(converter)
 
         freq_column = periods.map(period_to_freq)
-        freq_column = pd.Categorical(freq_column, categories=["Y", "Q", "M", "D", "W", "X"])
+        new_columns[f"{period_name}_freq"] = pd.Categorical(
+            freq_column, categories=["Y", "Q", "M", "D", "W", "X"]
+        )
 
-        insert_loc = data.columns.get_loc(period_name) + 1
-        data.insert(insert_loc, f"{period_name}_{date_type}", new_column)
-        data.insert(insert_loc + 1, f"{period_name}_freq", freq_column)
+    result = data.assign(**new_columns)
 
-    return data
+    cols = []
+    for col in data.columns:
+        cols.append(col)
+        if col in time_dimensions:
+            cols.append(f"{col}_{date_type}")
+            cols.append(f"{col}_freq")
+
+    result = result[cols]
+    result.attrs = data.attrs.copy()
+    return result

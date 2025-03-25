@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 def download_dataset(
     id: str,
-    download_dir: str | None = None,
+    download_dir: str | Path | None = None,
     catalog: str = DEFAULT_CATALOG,
     query: str | None = None,
     select: list[str] | None = None,
@@ -31,7 +31,10 @@ def download_dataset(
     meta = get_metadata(id=id, catalog=catalog, base_url=base_url)
 
     def save_metadata(key: str, value: Any):
-        path_n = download_path / f"{key}.{'parquet' if isinstance(value, (list, pd.DataFrame)) else 'json'}"
+        path_n = (
+            download_path
+            / f"{key}.{'parquet' if isinstance(value, (list, pd.DataFrame)) else 'json'}"
+        )
         if isinstance(value, (list, pd.DataFrame)):
             pd.DataFrame(value).to_parquet(path_n, engine="pyarrow", index=False)
         else:

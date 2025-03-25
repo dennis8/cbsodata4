@@ -8,35 +8,32 @@ logger = logging.getLogger(__name__)
 
 
 def add_label_columns(data: pd.DataFrame) -> pd.DataFrame:
-    """Add descriptive label columns based on metadata."""
-
+    """Add descriptive label columns to the data based on metadata mappings."""
     meta: CbsMetadata = data.attrs.get("meta")
     if meta is None:
-        logger.error("add_label_columns requires metadata.")
         raise ValueError("add_label_columns requires metadata.")
 
-    label_mappings = meta.get_label_mappings()
+    original_cols = list(data.columns)
+    new_columns = {}
 
-    for col, mapping in label_mappings.items():
+    for col, mapping in meta.get_label_mappings().items():
         if col in data.columns:
-            label_col = f"{col}Label"
-            data[label_col] = data[col].map(mapping)
-        elif col == 'Measure':
-            pass
-        else:
-            logger.error(f"Data does not contain column '{col}' required for labeling.")
-            raise ValueError(f"Data does not contain column '{col}' required for labeling.")
+            new_columns[f"{col}Label"] = data[col].map(mapping)
+        elif col != "Measure":
+            raise ValueError(
+                f"Data does not contain column '{col}' required for labeling."
+            )
 
-    # Reorder columns: place label columns just after the code columns
-    cols = list(data.columns)
+    result = data.assign(**new_columns)
+
     new_order = []
-    for dim_col in meta.dimension_identifiers:
-        new_order.append(dim_col)
-        label_col = f"{dim_col}Label"
-        if label_col in cols:
+    for col in original_cols:
+        new_order.append(col)
+        label_col = f"{col}Label"
+        if label_col in new_columns:
             new_order.append(label_col)
 
-    remaining_cols = [col for col in cols if col not in new_order]
-    new_order.extend(remaining_cols)
+    result = result[new_order]
+    result.attrs = data.attrs.copy()
 
-    return data[new_order]
+    return result

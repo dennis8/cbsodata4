@@ -1,5 +1,6 @@
 import logging
 from functools import cache
+from typing import Any
 
 import httpx
 
@@ -7,7 +8,7 @@ logger = logging.getLogger(__name__)
 
 
 @cache
-def fetch_json(path: str) -> dict:
+def fetch_json(path: str) -> dict[str, Any]:
     """Retrieve JSON data from a URL."""
     logger.info(f"Retrieving {path}")
     try:

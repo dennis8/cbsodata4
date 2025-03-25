@@ -10,27 +10,42 @@ logger = logging.getLogger(__name__)
 
 
 class CbsMetadata:
+    """Class to handle CBS metadata and provide convenient access methods."""
+
     def __init__(self, meta_dict: dict[str, Any]):
         self.meta_dict = meta_dict
 
     @property
     def identifier(self) -> str:
+        """Return the identifier of the dataset."""
         return self.meta_dict.get("Properties", {}).get("Identifier", "Unknown")
 
     @property
     def title(self) -> str:
+        """Return the title of the dataset."""
         return self.meta_dict.get("Properties", {}).get("Title", "Unknown")
 
     @property
     def dimension_identifiers(self) -> list[str]:
+        """Return a list of dimension identifiers in the dataset."""
         return [dim["Identifier"] for dim in self.meta_dict.get("Dimensions", [])]
 
     @property
     def time_dimension_identifiers(self) -> list[str]:
-        return [dim["Identifier"] for dim in self.meta_dict.get("Dimensions", []) if dim.get("Kind") == "TimeDimension"]
+        """Return a list of time dimension identifiers in the dataset."""
+        return [
+            dim["Identifier"]
+            for dim in self.meta_dict.get("Dimensions", [])
+            if dim.get("Kind") == "TimeDimension"
+        ]
 
     def get_codes(self) -> list[str]:
-        return [field for field in self.meta_dict if field.endswith("Codes") or field.endswith("Groups")]
+        """Return a list of code fields in the metadata."""
+        return [
+            field
+            for field in self.meta_dict
+            if field.endswith("Codes") or field.endswith("Groups")
+        ]
 
     @property
     def measurecode_mapping(self) -> dict[str, str]:
@@ -80,7 +95,9 @@ def get_metadata(
     meta_data = fetch_json(path)["value"]
 
     codes = [
-        field["name"] for field in meta_data if field["name"].endswith("Codes") or field["name"].endswith("Groups")
+        field["name"]
+        for field in meta_data
+        if field["name"].endswith("Codes") or field["name"].endswith("Groups")
     ]
     names_list = ["Dimensions"] + codes
 

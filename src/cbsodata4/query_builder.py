@@ -32,7 +32,9 @@ def combine_filters_with_or(filters: list[str]) -> str:
     return " or ".join([f"({filter_str})" for filter_str in filters])
 
 
-def build_odata_query(filter_str: str | None = None, select_fields: list[str] | None = None) -> str:
+def build_odata_query(
+    filter_str: str | None = None, select_fields: list[str] | None = None
+) -> str:
     """Build the OData query string with optional filters and select fields."""
     query_parts = []
     if filter_str:
@@ -45,7 +47,7 @@ def build_odata_query(filter_str: str | None = None, select_fields: list[str] | 
     return ""
 
 
-def construct_filter(**column_filters: dict[str, str | list]) -> str | None:
+def construct_filter(**column_filters: str | list[str]) -> str | None:
     """Construct the OData filter string based on column filters."""
     filter_clauses = []
     for column, value in column_filters.items():
@@ -53,7 +55,9 @@ def construct_filter(**column_filters: dict[str, str | list]) -> str | None:
             clause = build_eq_filter(column, value)
             filter_clauses.append(clause)
         else:
-            raise NotImplementedError(f"column filter for {type(value)} is not supported")
+            raise NotImplementedError(
+                f"column filter for {type(value)} is not supported"
+            )
     if not filter_clauses:
         return None
     return combine_filters_with_and(filter_clauses)

@@ -1,4 +1,5 @@
 import logging
+from pathlib import Path
 from typing import Any
 
 import pandas as pd
@@ -13,7 +14,7 @@ logger = logging.getLogger(__name__)
 def get_wide_data(
     id: str,
     catalog: str = DEFAULT_CATALOG,
-    download_dir: str | None = None,
+    download_dir: str | Path | None = None,
     query: str | None = None,
     select: list[str] | None = None,
     name_measure_columns: bool = True,
@@ -52,7 +53,10 @@ def get_wide_data(
         d = pd.DataFrame(columns=meta.measurecode_mapping.values())
     else:
         d = obs.pivot_table(
-            index=pivot_index, columns=pivot_columns, values=pivot_values, aggfunc="first"
+            index=pivot_index,
+            columns=pivot_columns,
+            values=pivot_values,
+            aggfunc="first",
         ).reset_index()
 
         if name_measure_columns:

@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 def get_observations(
     id: str,
     catalog: str = DEFAULT_CATALOG,
-    download_dir: str | None = None,
+    download_dir: str | Path | None = None,
     query: str | None = None,
     select: list[str] | None = None,
     include_id: bool = True,
@@ -47,13 +47,17 @@ def get_observations(
             **filters,
         )
     else:
-        logger.info(f"Not redownloading files, instead reading from disk at location {download_path}.")
+        logger.info(
+            f"Not redownloading files, instead reading from disk at location {download_path}."
+        )
         meta = get_metadata(id=id, catalog=catalog, base_url=base_url)
 
     observations_path = download_path / "Observations"
 
     if not observations_path.exists():
-        raise FileNotFoundError(f"Observations directory not found at {observations_path}.")
+        raise FileNotFoundError(
+            f"Observations directory not found at {observations_path}."
+        )
 
     logger.info(f"Reading parquet files at {observations_path}.")
     obs = pq.read_table(str(observations_path)).to_pandas()
