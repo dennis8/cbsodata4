@@ -35,8 +35,8 @@ def test_get_datasets_with_date_conversion(mock_fetch_json):
     assert "Identifier" in result.columns
     assert result["Identifier"].tolist() == ["table1", "table2"]
 
-    assert pd.api.types.is_datetime64tz_dtype(result["Modified"].dtype)
-    assert pd.api.types.is_datetime64tz_dtype(result["ObservationsModified"].dtype)
+    assert isinstance(result["Modified"].dtype, pd.DatetimeTZDtype)
+    assert isinstance(result["ObservationsModified"].dtype, pd.DatetimeTZDtype)
 
     assert result["Modified"].iloc[0].tzinfo is not None
     assert "Europe/Amsterdam" in str(result["Modified"].iloc[0].tzinfo)
