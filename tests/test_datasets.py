@@ -27,7 +27,6 @@ def test_get_datasets_with_date_conversion(mock_fetch_json):
         ]
     }
 
-    # Clear the cache to ensure a clean test
     get_datasets.cache_clear()
 
     result = get_datasets(convert_dates=True)
@@ -36,11 +35,9 @@ def test_get_datasets_with_date_conversion(mock_fetch_json):
     assert "Identifier" in result.columns
     assert result["Identifier"].tolist() == ["table1", "table2"]
 
-    # Check date conversion - use is_datetime64tz_dtype instead of is_datetime64_dtype
     assert pd.api.types.is_datetime64tz_dtype(result["Modified"].dtype)
     assert pd.api.types.is_datetime64tz_dtype(result["ObservationsModified"].dtype)
 
-    # Check that timezones were handled properly
     assert result["Modified"].iloc[0].tzinfo is not None
     assert "Europe/Amsterdam" in str(result["Modified"].iloc[0].tzinfo)
 
@@ -60,7 +57,6 @@ def test_get_datasets_without_date_conversion(mock_fetch_json):
         ]
     }
 
-    # Clear the cache to ensure a clean test
     get_datasets.cache_clear()
 
     result = get_datasets(convert_dates=False)
@@ -80,7 +76,6 @@ def test_get_datasets_catalog_filter(mock_fetch_json):
         ]
     }
 
-    # Clear the cache to ensure a clean test
     get_datasets.cache_clear()
 
     result = get_datasets(catalog="CBS", convert_dates=False)
@@ -96,17 +91,14 @@ def test_get_datasets_catalog_filter(mock_fetch_json):
 @patch("cbsodata4.datasets.fetch_json")
 def test_get_datasets_caching(mock_fetch_json):
     """Test that get_datasets caches results."""
-    # Clear the cache from any previous tests
     get_datasets.cache_clear()
 
     mock_fetch_json.return_value = {
         "value": [{"Identifier": "table1", "Catalog": "CBS"}]
     }
 
-    # Call twice with the same parameters
     result1 = get_datasets(convert_dates=False)
     result2 = get_datasets(convert_dates=False)
 
-    # Should only fetch once
     assert mock_fetch_json.call_count == 1
     pd.testing.assert_frame_equal(result1, result2)

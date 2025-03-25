@@ -77,12 +77,11 @@ def test_cbs_metadata_representation():
 @patch("cbsodata4.metadata.fetch_json")
 def test_get_metadata_from_id(mock_fetch_json):
     """Test retrieving metadata for a dataset ID."""
-    # Mock the API responses
     mock_fetch_json.side_effect = [
-        {"value": [{"name": "Dimensions"}, {"name": "MeasureCodes"}]},  # main endpoint
-        {"value": [{"Identifier": "Dim1"}]},  # Dimensions
-        {"value": [{"Identifier": "M1", "Title": "Measure 1"}]},  # MeasureCodes
-        {"Identifier": "test_id", "Title": "Test Dataset"},  # Properties
+        {"value": [{"name": "Dimensions"}, {"name": "MeasureCodes"}]},
+        {"value": [{"Identifier": "Dim1"}]},
+        {"value": [{"Identifier": "M1", "Title": "Measure 1"}]},
+        {"Identifier": "test_id", "Title": "Test Dataset"},
     ]
 
     meta = get_metadata("test_id")
@@ -97,7 +96,6 @@ def test_get_metadata_from_id(mock_fetch_json):
         "Title": "Test Dataset",
     }
 
-    # Verify the API calls
     assert mock_fetch_json.call_count == 4
 
 
@@ -107,6 +105,5 @@ def test_get_metadata_from_dataframe():
     meta = CbsMetadata({"Properties": {"Identifier": "test_id"}})
     df.attrs["meta"] = meta
 
-    # Test getting metadata from DataFrame
     result = get_metadata(df)
     assert result is meta

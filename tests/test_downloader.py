@@ -19,7 +19,6 @@ def test_download_dataset(
     mock_to_parquet, mock_file_open, mock_mkdir, mock_download_data, mock_get_metadata
 ):
     """Test downloading a dataset."""
-    # Mock metadata
     mock_meta = MagicMock()
     mock_meta.meta_dict = {
         "Dimensions": [{"Identifier": "Dim1"}],
@@ -30,17 +29,13 @@ def test_download_dataset(
 
     result = download_dataset("test_id")
 
-    # Check that directories were created
     mock_mkdir.assert_called()
 
-    # Check that metadata was saved
-    assert mock_to_parquet.call_count >= 2  # At least dimensions and measures
-    assert mock_file_open.call_count >= 1  # At least properties
+    assert mock_to_parquet.call_count >= 2
+    assert mock_file_open.call_count >= 1
 
-    # Check that download_data_stream was called
     mock_download_data.assert_called_once()
 
-    # Verify the result
     assert result is mock_meta
 
 
@@ -57,16 +52,13 @@ def test_download_dataset_with_filters(
     mock_meta.meta_dict = {"Dimensions": [], "Properties": {}}
     mock_get_metadata.return_value = mock_meta
 
-    # Call with filters
     result = download_dataset("test_id", Dim1="Value1", Dim2=["Value2", "Value3"])
 
-    # Check that the filters were properly constructed in the URL
     call_url = mock_download_data.call_args[1]["url"]
     assert "filter=" in call_url
     assert "Dim1" in call_url
     assert "Dim2" in call_url
 
-    # Verify select parameter handling
     download_dataset("test_id", select=["Field1", "Field2"])
     call_url = mock_download_data.call_args[1]["url"]
     assert "$select=Field1,Field2" in call_url
@@ -77,23 +69,19 @@ def test_download_dataset_with_filters(
 @patch("cbsodata4.downloader.Path.mkdir")
 def test_download_data_stream(mock_mkdir, mock_to_parquet, mock_fetch_json):
     """Test downloading data stream."""
-    # Mock data for first call and nextLink for pagination
     mock_fetch_json.side_effect = [
         {"value": [{"Id": 1, "Value": 100}], "@odata.nextLink": "https://next.page"},
         {"value": [{"Id": 2, "Value": 200}], "@odata.nextLink": None},
     ]
 
-    # Convert output_path to string to fix the issue with WindowsPath
     download_data_stream(
         url="https://test.url",
         output_path=str(Path("test_output")),
         empty_selection=pd.DataFrame(),
     )
 
-    # Should make two API calls (original + nextLink)
     assert mock_fetch_json.call_count == 2
 
-    # Should create two partition files
     assert mock_to_parquet.call_count == 2
     assert "partition_0" in mock_to_parquet.call_args_list[0][0][0]
     assert "partition_1" in mock_to_parquet.call_args_list[1][0][0]
