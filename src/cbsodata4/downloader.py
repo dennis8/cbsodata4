@@ -55,7 +55,7 @@ def download_dataset(
     observations_dir = download_path / "Observations"
 
     download_data_stream(
-        url=str(path),
+        url=path,
         output_path=str(observations_dir),
         empty_selection=get_empty_dataframe(meta),
     )
@@ -77,15 +77,16 @@ def download_data_stream(
     empty_selection: pd.DataFrame,
 ) -> None:
     """Download data from an url to output_path folder."""
+    output_path = Path(output_path)
 
     def fetch_and_process_data(url: str, partition: int) -> str | None:
         """Fetch data from URL, process it, and write to the output directory."""
         data = fetch_json(url)
         values = data.get("value", empty_selection.to_dict(orient="records"))
         df = pd.DataFrame(values)
-        file_path = Path(output_path) / f"partition_{partition}.parquet"
+        file_path = output_path / f"partition_{partition}.parquet"
         file_path.parent.mkdir(parents=True, exist_ok=True)
-        df.to_parquet(file_path, engine="pyarrow", index=False)
+        df.to_parquet(str(file_path), engine="pyarrow", index=False)
         return data.get("@odata.nextLink")
 
     logger.info(f"Retrieving {url}")
