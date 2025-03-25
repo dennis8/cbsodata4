@@ -87,8 +87,9 @@ def get_metadata(
     """Retrieve the metadata of a publication for the given dataset identifier."""
 
     if isinstance(id, pd.DataFrame):
-        if hasattr(id, "meta") and id.meta is not None:
-            return id.meta
+        if "meta" in id.attrs:
+            return id.attrs["meta"]
+        raise ValueError("DataFrame does not have metadata attached")
 
     path = f"{base_url}/{catalog}/{id}"
     logger.info(f"Fetching metadata for dataset {id}.")
