@@ -36,6 +36,10 @@ def search_datasets(
 
     res = fetch_json(url)
     res_results = res.get("results", [])
+
+    if not res_results:
+        return pd.DataFrame()
+
     res_tables = pd.DataFrame(
         [
             {"unique_id": r.get("unique_id"), "rel": r.get("rel"), "url": r.get("url")}
@@ -44,8 +48,12 @@ def search_datasets(
         ]
     )
 
+    if res_tables.empty:
+        return pd.DataFrame()
+
     ds = get_datasets(catalog=catalog, convert_dates=convert_dates, base_url=base_url)
-    res_ds = ds.merge(res_tables, how="left", left_on="Identifier", right_on="unique_id")
-    res_ds = res_ds.dropna(subset=["unique_id"])
+    res_ds = ds.merge(
+        res_tables, how="inner", left_on="Identifier", right_on="unique_id"
+    )
 
     return res_ds
