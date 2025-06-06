@@ -6,7 +6,7 @@ readme = "README.md"
 authors = [
     { name = "Dennis Albers", email = "dennis_foss@tutan.de" }
 ]
-requires-python = ">=3.13"
+requires-python = ">=3.10"
 license = "Apache-2.0"
 dependencies = [
     "httpx>=0.28.1",
